@@ -1,0 +1,12 @@
+name = "bitterbot-funding-onramp"
+main = "src/worker.ts"
+compatibility_date = "2025-03-14"
+
+# Set secrets via: wrangler secret put STRIPE_SECRET_KEY_TESTNET
+# Never commit real keys. Use `wrangler secret put` for each:
+#   STRIPE_SECRET_KEY_TESTNET
+#   STRIPE_PUBLISHABLE_KEY_TESTNET
+#   STRIPE_SECRET_KEY_LIVE
+#   STRIPE_PUBLISHABLE_KEY_LIVE
+
+# For local dev with wrangler, put test keys in .dev.vars (gitignored).
