@@ -4,17 +4,20 @@ import Stripe from "stripe";
 
 /**
  * Environment bindings — resolved from process.env (Node) or Workers secrets (CF).
+ *
+ * Live-only. Testnet funding was intentionally removed on 2026-04-22:
+ * wallet-funding code is not an open contributor surface, so there is no
+ * developer-testing use case for testnet keys. Any accidental request with
+ * a testnet destination network is rejected below.
  */
 export type Env = {
-  STRIPE_SECRET_KEY_TESTNET: string;
-  STRIPE_PUBLISHABLE_KEY_TESTNET: string;
   STRIPE_SECRET_KEY_LIVE: string;
   STRIPE_PUBLISHABLE_KEY_LIVE: string;
 };
 
 type SessionBody = {
   walletAddress: string;
-  network: "base" | "base-sepolia";
+  network: "base";
   amount?: number;
 };
 
@@ -34,16 +37,6 @@ function isRateLimited(key: string): boolean {
   return entry.count > RATE_LIMIT_MAX;
 }
 
-function resolveKeys(env: Env, network: string) {
-  const isTestnet = network === "base-sepolia";
-  return {
-    secretKey: isTestnet ? env.STRIPE_SECRET_KEY_TESTNET : env.STRIPE_SECRET_KEY_LIVE,
-    publishableKey: isTestnet
-      ? env.STRIPE_PUBLISHABLE_KEY_TESTNET
-      : env.STRIPE_PUBLISHABLE_KEY_LIVE,
-  };
-}
-
 export function createApp() {
   const app = new Hono<{ Bindings: Env }>();
 
@@ -60,8 +53,8 @@ export function createApp() {
     }
 
     const { walletAddress, network } = body;
-    if (network !== "base" && network !== "base-sepolia") {
-      return c.json({ error: 'network must be "base" or "base-sepolia"' }, 400);
+    if (network !== "base") {
+      return c.json({ error: 'network must be "base"' }, 400);
     }
 
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
@@ -78,11 +71,10 @@ export function createApp() {
       return c.json({ error: "Rate limit exceeded. Try again shortly." }, 429);
     }
 
-    const env = c.env;
-    const { secretKey, publishableKey } = resolveKeys(env, network);
+    const { STRIPE_SECRET_KEY_LIVE: secretKey, STRIPE_PUBLISHABLE_KEY_LIVE: publishableKey } =
+      c.env;
     if (!secretKey || !publishableKey) {
-      const mode = network === "base-sepolia" ? "testnet" : "live";
-      return c.json({ error: `Stripe ${mode} keys not configured on this service` }, 503);
+      return c.json({ error: "Stripe live keys not configured on this service" }, 503);
     }
 
     try {

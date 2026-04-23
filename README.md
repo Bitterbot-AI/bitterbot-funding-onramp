@@ -33,9 +33,9 @@ Request body:
 
 ```json
 {
-  "walletAddress": "0x...",      // required, 0x-prefixed 40-hex-digit address
-  "network": "base" | "base-sepolia",  // required
-  "amount": 50                    // optional, USDC
+  "walletAddress": "0x...",   // required, 0x-prefixed 40-hex-digit address
+  "network": "base",          // required, live-only (see note below)
+  "amount": 50                 // optional, USDC
 }
 ```
 
@@ -46,6 +46,8 @@ Response:
 ```
 
 Rate-limited to 10 requests per IP+wallet per 60 seconds.
+
+**Live-only:** this service does not accept testnet destinations. Wallet-funding code is not an open contributor surface, so there is no testnet path to exercise. Requests with any `network` other than `"base"` are rejected with 400.
 
 ## Deployment
 
@@ -67,24 +69,22 @@ Configured via `wrangler.toml`. Secrets set via `wrangler secret put`.
 
 ### Secrets
 
-Four env vars are required on the deploy target:
+Two env vars are required on the deploy target:
 
 ```
-STRIPE_SECRET_KEY_TESTNET
-STRIPE_PUBLISHABLE_KEY_TESTNET
 STRIPE_SECRET_KEY_LIVE
 STRIPE_PUBLISHABLE_KEY_LIVE
 ```
 
 Never commit these. Use `wrangler secret put` (Workers) or the Railway dashboard Variables tab.
 
-For local development: copy `.env.example` to `.env` with test keys.
+For local development: copy `.env.example` to `.env` with live keys (or a personal Stripe sandbox account).
 
 ## Local development
 
 ```bash
 pnpm install
-cp .env.example .env   # fill in Stripe test keys
+cp .env.example .env   # fill in Stripe live keys
 pnpm dev               # tsx watch src/node.ts on :8787
 ```
 
@@ -99,7 +99,7 @@ Session test:
 ```bash
 curl -X POST http://localhost:8787/session \
   -H 'Content-Type: application/json' \
-  -d '{"walletAddress":"0x0000000000000000000000000000000000000000","network":"base-sepolia"}'
+  -d '{"walletAddress":"0x0000000000000000000000000000000000000000","network":"base"}'
 ```
 
 ## Related
